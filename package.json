@@ -1,6 +1,6 @@
 {
   "name": "@ricsam/excel-to-formula-engine",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Convert an Excel .xlsx file into FormulaEngine WorkbookData, in the browser",
   "type": "module",
   "module": "./dist/index.mjs",

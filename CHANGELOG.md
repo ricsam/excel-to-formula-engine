@@ -1,5 +1,17 @@
 # @ricsam/excel-to-formula-engine
 
+## 0.2.1
+
+### Patch Changes
+
+- Refuse unreadable files in `spreadsheetToFormulaEngine` instead of reading them
+  as text.
+  
+  Every byte sequence parses as delimited text, so a corrupt `.xlsx` fell through
+  to the CSV reader and became a one-cell sheet of mojibake — reporting success
+  for a file that could not be read. A file named `.xlsx` or `.xlsm` that is not a
+  ZIP is now refused, as is binary content dropped without a usable file name.
+
 ## 0.2.0
 
 ### Minor Changes

@@ -244,6 +244,20 @@ describe("spreadsheetToFormulaEngine", () => {
     expect(data.sheets.map((sheet) => sheet.name)).toEqual(["Data", "Summary"]);
   });
 
+  test("refuses a corrupt workbook rather than reading it as text", async () => {
+    // Every byte sequence "parses" as delimited text, so without this a broken
+    // .xlsx becomes a one-cell sheet of mojibake and reports success.
+    const broken = new File([new Uint8Array([0x50, 0x01, 0x02, 0x03])], "broken.xlsx");
+    await expect(spreadsheetToFormulaEngine(broken)).rejects.toThrow(
+      /named as an Excel workbook but is not one/
+    );
+  });
+
+  test("refuses binary content when the name gives no hint", async () => {
+    const binary = new File([new Uint8Array([1, 2, 0, 4])], "mystery");
+    await expect(spreadsheetToFormulaEngine(binary)).rejects.toThrow(/binary data/);
+  });
+
   test("names the sheet after a dropped file", async () => {
     const file = new File(["a,b\n1,2"], "quarterly sales.csv", { type: "text/csv" });
     const data = await spreadsheetToFormulaEngine(file);

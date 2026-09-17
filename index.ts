@@ -114,10 +114,46 @@ export async function spreadsheetToFormulaEngineDetailed(
   options?: ConvertOptions & CsvConvertOptions
 ): Promise<ConvertResult> {
   const bytes = await toBytes(source);
+  const fileName =
+    options?.fileName ??
+    (typeof File !== "undefined" && source instanceof File ? source.name : undefined);
+
   if (looksLikeZip(bytes)) {
     return convertWorkbook(bytes, withFileName(source, options));
   }
+
+  /*
+    A file named .xlsx that is not a ZIP is a broken workbook, not delimited
+    text. Falling through to the text reader would turn it into a one-cell sheet
+    of mojibake and report success, which is worse than saying it cannot be read.
+  */
+  if (fileName && /\.(xlsx|xlsm)$/i.test(fileName)) {
+    throw new Error(
+      `${fileName} is named as an Excel workbook but is not one — the file is ` +
+        `corrupt, or it is a legacy .xls saved under the wrong extension.`
+    );
+  }
+
+  assertLooksLikeText(bytes, fileName);
   return csvToFormulaEngineDetailed(bytes, withCsvFileName(source, options));
+}
+
+/**
+ * Refuse bytes that are plainly not text.
+ *
+ * Without a usable file name there is nothing but the content to go on, and
+ * every byte sequence "parses" as delimited text — so an image dropped by
+ * mistake would become a sheet of one enormous unreadable cell. A NUL byte does
+ * not occur in real delimited text and is the cheapest reliable tell.
+ */
+function assertLooksLikeText(bytes: Uint8Array, fileName: string | undefined): void {
+  const sample = bytes.subarray(0, 8192);
+  if (sample.indexOf(0) !== -1) {
+    throw new Error(
+      `${fileName ?? "The file"} is not a spreadsheet: it contains binary data ` +
+        `rather than delimited text.`
+    );
+  }
 }
 
 /** Every .xlsx is a ZIP, and every ZIP starts `PK\x03\x04`. */
