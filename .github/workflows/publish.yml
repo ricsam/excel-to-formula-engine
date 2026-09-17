@@ -1,0 +1,46 @@
+name: publish
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install
+      - run: bun run typecheck
+      - run: bun run test
+      - run: bun run build
+
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+    needs: test
+    permissions:
+      contents: write
+      # Required for npm trusted publishing: the OIDC token this job mints is
+      # what npm accepts in place of a long-lived automation token.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install
+      - run: bun run test
+      - run: bun run build
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+      # Trusted publishing needs npm >= 11.5.1, which is newer than the npm
+      # bundled with Node 24.
+      - name: Update npm
+        run: npm install -g npm@11
+      - run: npm -v
+      - run: npx changeset publish --access=public --registry=https://registry.npmjs.org/
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

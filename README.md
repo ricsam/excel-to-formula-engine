@@ -10,9 +10,11 @@ const data = await excelToFormulaEngine(blob);
 engine.addWorkbook({ workbookName: "Budget", data });
 ```
 
-Pure TypeScript — no WASM, no build step, no server. An `.xlsx` is a ZIP of XML,
-so it unzips with [fflate](https://github.com/101arrowz/fflate) and parses with
-[fast-xml-parser](https://github.com/NaturalIntelligence/fast-xml-parser).
+Pure TypeScript — no WASM, no native toolchain, no server round trip. An `.xlsx`
+is a ZIP of XML, so it unzips with [fflate](https://github.com/101arrowz/fflate)
+and parses with [fast-xml-parser](https://github.com/NaturalIntelligence/fast-xml-parser).
+Ships as ESM and CJS with type declarations; ~48 kB per bundle, dependencies
+external.
 
 ## Install
 
@@ -145,14 +147,32 @@ it recalculated live. `demo/sample.xlsx` is there to try.
 ```bash
 bun install
 bun run fixtures   # generate .xlsx test fixtures with ExcelJS
-bun test
+bun run test       # regenerates fixtures, then runs the suite
 bun run typecheck
+bun run build      # emit dist/ (ESM, CJS and .d.ts)
 ```
 
 Fixtures are written by ExcelJS rather than hand-rolled XML, so the tests run
 against real OOXML — shared strings, shared formulas, style indirection, table
 parts and conditional formatting blocks as a spreadsheet application emits them.
-`bun test` regenerates them first.
+They are generated rather than committed, so `bun run test` builds them first.
+
+## Releasing
+
+Releases go out from `main` through [changesets](https://github.com/changesets/changesets)
+and npm [trusted publishing](https://docs.npmjs.com/trusted-publishers), so no
+npm token is stored in the repository — the publish job mints a short-lived
+OIDC token instead.
+
+```bash
+bunx changeset          # describe the change; pick patch / minor / major
+bunx changeset version  # fold pending changesets into package.json + CHANGELOG
+git commit -am "Release x.y.z"
+git push origin main    # .github/workflows/publish.yml builds, tests, publishes
+```
+
+`changeset publish` only publishes when the version in `package.json` is not
+already on npm, so pushing unrelated commits to `main` is safe.
 
 ## License
 
