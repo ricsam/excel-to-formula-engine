@@ -195,12 +195,57 @@ async function withSharedFormulas(): Promise<ExcelJS.Workbook> {
   return wb;
 }
 
+/**
+ * A table with a calculated column.
+ *
+ * Excel stores a current-row reference as `Table[[#This Row],[Column]]` and only
+ * *displays* the `[@Column]` shorthand, so this fixture carries the form a real
+ * file carries — which is the form the engine cannot parse and the converter has
+ * to rewrite.
+ */
+async function withCalculatedColumn(): Promise<ExcelJS.Workbook> {
+  const wb = new ExcelJS.Workbook();
+  const sheet = wb.addWorksheet("Sales");
+
+  sheet.addTable({
+    name: "TTRinput",
+    ref: "A1",
+    headerRow: true,
+    columns: [{ name: "Payload" }, { name: "Amount" }, { name: "Result" }],
+    rows: [
+      [
+        "alpha,beta",
+        10,
+        {
+          formula:
+            'LEFT(TTRinput[[#This Row],[Payload]],FIND(",",TTRinput[[#This Row],[Payload]])-1)'
+        }
+      ],
+      [
+        "gamma,delta",
+        20,
+        {
+          formula:
+            'LEFT(TTRinput[[#This Row],[Payload]],FIND(",",TTRinput[[#This Row],[Payload]])-1)'
+        }
+      ]
+    ]
+  });
+
+  // A current-row reference from outside the table keeps its table name, the
+  // way Excel writes and shows it.
+  sheet.getCell("E1").value = { formula: "SUM(TTRinput[Amount])" };
+
+  return wb;
+}
+
 const FIXTURES: Record<string, () => Promise<ExcelJS.Workbook>> = {
   "basic.xlsx": basic,
   "table.xlsx": withTable,
   "conditional-formatting.xlsx": withConditionalFormatting,
   "names-and-dates.xlsx": withNamesAndDates,
   "shared-formulas.xlsx": withSharedFormulas,
+  "calculated-column.xlsx": withCalculatedColumn,
 };
 
 async function main(): Promise<void> {

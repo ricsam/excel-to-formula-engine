@@ -38,14 +38,45 @@ const XLFN_PREFIX = /_xlfn\.(_xlws\.)?/g;
 
 /**
  * `@` marks implicit intersection in files written by dynamic-array Excel. The
- * engine has no implicit-intersection operator, so it is dropped: for a single
- * -valued reference the behaviour is identical.
+ * engine has no implicit-intersection operator, so it is dropped: for a
+ * single-valued reference the behaviour is identical.
+ *
+ * `[` is excluded from what may precede it, because `[@Column]` is not an
+ * implicit intersection at all — it is a structured reference to the current
+ * row. Stripping that `@` turns `Table[@Amount]` into `Table[Amount]`, which is
+ * the whole column: a formula that still evaluates, and quietly gives the wrong
+ * number.
  */
-const IMPLICIT_INTERSECTION = /(?<![\w$"'\]])@(?=[A-Za-z_\\])/g;
+const IMPLICIT_INTERSECTION = /(?<![\w$"'\]\[])@(?=[A-Za-z_\\])/g;
+
+/**
+ * Rewrite Excel's stored current-row selector into the `@` form.
+ *
+ * Excel stores `Table[[#This Row],[Column]]` in the file but only ever *shows*
+ * `[@Column]` in its formula bar — the `@` shorthand is newer than the file
+ * format, so the fully-qualified selector is what gets written for compatibility.
+ * The engine reads the shorthand and not the selector, so this rewrite is what
+ * makes a calculated column work at all. It also happens to put back the exact
+ * text the author typed, which is the form they will expect to see.
+ *
+ * Both the spaced spelling Excel writes and the unspaced one some writers emit
+ * are handled, as is the `[ColA]:[ColB]` span form.
+ */
+const THIS_ROW_REFERENCE =
+  /(?:'((?:[^']|'')+)'|([A-Za-z_\\][\w.\\]*))?\[\[#This ?Row\],\s*\[([^\]]*)\](?:\s*:\s*\[([^\]]*)\])?\]/gi;
 
 export interface TranslateFormulaOptions {
   sheetName?: string;
   cellReference?: string;
+  /**
+   * The table the formula's own cell sits inside, when it sits inside one.
+   *
+   * Excel drops the table name from a current-row reference that points at the
+   * table the formula is already in, so `[@Payload]` is what the author sees.
+   * Supplying it here reproduces that, and leaving it out keeps the name — which
+   * is still correct, just more verbose than Excel would be.
+   */
+  containingTableName?: string;
 }
 
 export interface TranslatedFormula {
@@ -63,6 +94,7 @@ export function translateFormula(
 
   body = body.replace(XLFN_PREFIX, "");
   body = body.replace(IMPLICIT_INTERSECTION, "");
+  body = contractThisRowReferences(body, options.containingTableName);
 
   for (const name of findUnsupportedFunctions(body)) {
     diagnostics.push({
@@ -243,4 +275,51 @@ function columnIndexToLabel(index: number): string {
     remaining = Math.floor((remaining - rest) / 26);
   }
   return label;
+}
+
+/**
+ * `Table[[#This Row],[Col]]` → `Table[@Col]`, or `[@Col]` when the formula is
+ * already inside that table.
+ */
+export function contractThisRowReferences(
+  formulaBody: string,
+  containingTableName?: string
+): string {
+  return formulaBody.replace(
+    THIS_ROW_REFERENCE,
+    (whole, quotedTable, bareTable, startCol, endCol) => {
+      const tableName: string | undefined = quotedTable
+        ? String(quotedTable).replace(/''/g, "'")
+        : bareTable
+          ? String(bareTable)
+          : undefined;
+
+      // A column name can contain characters that would not survive being
+      // written bare, so the bracketed form is kept whenever it is a span or
+      // the name is not a plain identifier.
+      const columns =
+        endCol === undefined
+          ? `[${startCol}]`
+          : `[${startCol}]:[${endCol}]`;
+
+      const isPlainSingleColumn =
+        endCol === undefined && /^[^[\]@#'"]+$/.test(String(startCol));
+
+      const reference = isPlainSingleColumn ? `@${startCol}` : `@${columns}`;
+
+      // Excel itself drops the table name when the formula lives in that table.
+      if (
+        tableName &&
+        containingTableName &&
+        tableName.toLowerCase() === containingTableName.toLowerCase()
+      ) {
+        return `[${reference}]`;
+      }
+      if (!tableName) {
+        return `[${reference}]`;
+      }
+      const quoted = quotedTable ? `'${String(quotedTable)}'` : tableName;
+      return `${quoted}[${reference}]`;
+    }
+  );
 }

@@ -27,6 +27,7 @@ import {
   rangeReferenceToSpreadsheetRange,
   toA1,
   toSpreadsheetRange,
+  type ParsedRange,
 } from "./a1";
 import type {
   ConvertOptions,
@@ -85,6 +86,30 @@ export async function convertWorkbook(
     const worksheet = parseWorksheet(pkg, entry.partPath, sharedStrings);
     importedSheetNames.add(entry.name);
 
+    /*
+      Tables are read before the cells are, because a formula's translation
+      depends on whether its own cell sits inside one: Excel stores a calculated
+      column's reference as `Table[[#This Row],[Col]]` and displays it as
+      `[@Col]`, and reproducing that needs to know which table "this row" is in.
+    */
+    const sheetTables = importTables ? parseTables(pkg, entry.partPath) : [];
+    const tableRanges = sheetTables
+      .map((table) => ({ name: table.displayName, range: parseA1Range(table.ref) }))
+      .filter(
+        (entryTable): entryTable is { name: string; range: ParsedRange } =>
+          entryTable.range !== undefined
+      );
+
+    /** The table a cell sits inside, or undefined when it sits in none. */
+    const tableAt = (colIndex: number, rowIndex: number): string | undefined =>
+      tableRanges.find(
+        ({ range }) =>
+          colIndex >= range.start.colIndex &&
+          colIndex <= range.end.colIndex &&
+          rowIndex >= range.start.rowIndex &&
+          rowIndex <= range.end.rowIndex
+      )?.name;
+
     const content = new Map<string, SerializedCellValue>();
     const cellMetadata = new Map<string, ExcelCellMetadata>();
     // Cells sharing one style are collected so each distinct style becomes a
@@ -102,6 +127,7 @@ export async function convertWorkbook(
         date1904,
         sheetName: entry.name,
         diagnostics,
+        containingTableName: tableAt(cell.colIndex, cell.rowIndex),
       });
       if (value !== undefined) {
         content.set(cell.reference, value);
@@ -166,7 +192,7 @@ export async function convertWorkbook(
     }
 
     if (importTables) {
-      for (const table of parseTables(pkg, entry.partPath)) {
+      for (const table of sheetTables) {
         const converted = convertTable(table, entry.name, diagnostics);
         if (converted) {
           tables.push(converted);
@@ -232,6 +258,8 @@ interface CellValueContext {
   date1904: boolean;
   sheetName: string;
   diagnostics: Diagnostic[];
+  /** The table this cell sits inside, when it sits inside one. */
+  containingTableName?: string;
 }
 
 /**
@@ -256,6 +284,7 @@ function cellValue(
     const translated = translateFormula(body, {
       sheetName: context.sheetName,
       cellReference: cell.reference,
+      containingTableName: context.containingTableName,
     });
     context.diagnostics.push(...translated.diagnostics);
     return translated.formula;
