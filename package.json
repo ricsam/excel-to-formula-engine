@@ -41,7 +41,7 @@
     "typescript": "^5.9.2"
   },
   "peerDependencies": {
-    "@ricsam/formula-engine": ">=0.3.0"
+    "@ricsam/formula-engine": "0.3.0"
   },
   "files": [
     "index.ts",

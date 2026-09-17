@@ -13,6 +13,9 @@
         "exceljs": "^4.4.0",
         "typescript": "^5.9.2",
       },
+      "peerDependencies": {
+        "@ricsam/formula-engine": "0.3.0",
+      },
     },
   },
   "packages": {
@@ -21,6 +24,8 @@
     "@fast-csv/parse": ["@fast-csv/parse@4.3.6", "", { "dependencies": { "@types/node": "^14.0.1", "lodash.escaperegexp": "^4.1.2", "lodash.groupby": "^4.6.0", "lodash.isfunction": "^3.0.9", "lodash.isnil": "^4.0.0", "lodash.isundefined": "^3.0.1", "lodash.uniq": "^4.5.0" } }, "sha512-uRsLYksqpbDmWaSmzvJcuApSEe38+6NQZBUsuAyMZKqHxH0g1wcJgsKUvN3WC8tewaqFjBMMGrkHmC+T7k8LvA=="],
 
     "@nodable/entities": ["@nodable/entities@3.0.0", "", {}, "sha512-8L9xFeTYKhm49xfIypoe2W5wV1m/3Z58kT+7kR9A8OyFxcPduI4VmxaUMQyKYrRjUoLLSXv6EKKID5Tvj9cUVw=="],
+
+    "@ricsam/formula-engine": ["@ricsam/formula-engine@0.3.0", "", { "peerDependencies": { "typescript": "^5" } }, "sha512-c5wJ/XMRVq697dO2ctxBUCNkBqvMkBMH93ZvrBcT6rLiP5JjTXmHEU8hgEs2HMTaMV/StXNDPMNxmQD2O4TcyQ=="],
 
     "@types/bun": ["@types/bun@1.4.2", "", { "dependencies": { "bun-types": "1.4.2" } }, "sha512-GimotNn7+ZV0uVArItBbriZsR1oNf0+WTzPkdcFrzShI7k2norL0uzEaJT8T33dWr7O/c9ZDuAFQrctKCi72oQ=="],
 
