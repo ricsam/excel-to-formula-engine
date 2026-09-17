@@ -1,6 +1,7 @@
 # excel-to-formula-engine
 
-Convert an Excel `.xlsx` file into [`@ricsam/formula-engine`](https://github.com/ricsam/formula-engine)
+Convert a spreadsheet file — `.xlsx`, `.csv` or `.tsv` — into
+[`@ricsam/formula-engine`](https://github.com/ricsam/formula-engine)
 `WorkbookData`, in the browser.
 
 ```ts
@@ -21,6 +22,54 @@ external.
 ```bash
 bun add @ricsam/excel-to-formula-engine @ricsam/formula-engine
 ```
+
+## Delimited text
+
+CSV and TSV go through `csvToFormulaEngine`, or through
+`spreadsheetToFormulaEngine` when you do not know which kind of file you have —
+a drop target, typically. That one settles the format from the bytes rather than
+the file name, since `.xlsx` is a ZIP and delimited text is not, so a workbook
+saved with a `.csv` extension still reads correctly.
+
+```ts
+import {
+  csvToFormulaEngine,
+  spreadsheetToFormulaEngine
+} from "@ricsam/excel-to-formula-engine";
+
+// Delimiter is detected: comma, tab, semicolon or pipe.
+const data = await csvToFormulaEngine(file);
+
+// Or let it work out which kind of file this is.
+const data = await spreadsheetToFormulaEngine(file);
+```
+
+Parsing follows RFC 4180, so a quoted field may contain the delimiter, doubled
+quotes, and line breaks. The UTF-8 BOM Excel writes on every CSV export is
+stripped — left in, it becomes an invisible part of the first header cell.
+
+### What a bare string becomes
+
+A CSV carries no types, so every cell is a judgement call. The rules err toward
+keeping data recoverable:
+
+| Field | Becomes | Why |
+| --- | --- | --- |
+| `42`, `-3.5`, `1.50`, `1e3` | number | Plain decimals. |
+| `TRUE` / `false` | boolean | Any case, as in a spreadsheet. |
+| `=B2*C2` | formula | What a spreadsheet does with the same file. |
+| `007`, `01234` | **text** | Part numbers and postcodes — the mangling Excel is notorious for. |
+| `12345678901234567890` | **text** | Beyond float precision; converting would silently change it. |
+| `1,000`, `$5`, `50%` | **text** | Converting would drop the formatting. |
+| `0x1f`, `Infinity` | **text** | `Number()` accepts these; a spreadsheet does not. |
+
+Empty fields are left out rather than stored as empty strings, which is what
+keeps a sparse sheet sparse.
+
+There is deliberately no option to keep an `=`-leading field as text: the engine
+stores a formula as a string beginning with `=` and has no escape for text that
+merely looks like one, so such an option could only be honoured by altering the
+value.
 
 ## Usage
 

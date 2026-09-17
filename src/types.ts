@@ -23,7 +23,9 @@ export type DiagnosticCode =
   /** A table could not be created. */
   | "skipped-table"
   /** A sheet was skipped, for example a chart sheet. */
-  | "skipped-sheet";
+  | "skipped-sheet"
+  /** A delimiter had to be guessed from the text. */
+  | "guessed-delimiter";
 
 export interface Diagnostic {
   severity: DiagnosticSeverity;
@@ -122,6 +124,46 @@ export interface ConvertOptions {
    * Import only these sheets, by name. Defaults to every worksheet.
    */
   sheets?: string[];
+}
+
+/**
+ * Options for reading delimited text (CSV, TSV).
+ *
+ * The parsing defaults match what a spreadsheet does with the same file, on the
+ * grounds that the file usually came out of one.
+ *
+ * There is deliberately no option to keep `=`-leading fields as text. The engine
+ * stores a formula as a string beginning with `=` and has no escape for text
+ * that merely looks like one, so such an option could only be honoured by
+ * altering the value — which is worse than not offering it.
+ */
+export interface CsvConvertOptions {
+  /** Name for the single sheet the file becomes. @default "Sheet1" */
+  sheetName?: string;
+  /** Recorded in workbook metadata. */
+  fileName?: string;
+  /**
+   * Field separator. Detected from the text when omitted, which is the right
+   * choice for `.csv` — the extension says nothing about the separator, and a
+   * comma-decimal locale writes semicolons.
+   */
+  delimiter?: string;
+  /**
+   * Convert plain decimals to numbers. Leading-zero strings and integers too
+   * long to survive as floats are kept as text either way.
+   * @default true
+   */
+  parseNumbers?: boolean;
+  /** Convert `TRUE` / `FALSE` (any case) to booleans. @default true */
+  parseBooleans?: boolean;
+  /**
+   * Strip surrounding whitespace from every field.
+   *
+   * Off by default because the whitespace may be data, and a quoted field that
+   * carries it meant to.
+   * @default false
+   */
+  trimFields?: boolean;
 }
 
 export interface ConvertResult {

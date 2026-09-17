@@ -1,5 +1,25 @@
 # @ricsam/excel-to-formula-engine
 
+## 0.2.0
+
+### Minor Changes
+
+- Add CSV and TSV import.
+  
+  `csvToFormulaEngine` reads delimited text into a single-sheet workbook, and
+  `spreadsheetToFormulaEngine` takes any of the three formats and settles which
+  one it is from the bytes rather than the file name — so a workbook saved with a
+  `.csv` extension still reads correctly.
+  
+  The delimiter is detected between comma, tab, semicolon and pipe by scoring how
+  consistently each splits the sample lines, so prose full of commas does not beat
+  the real separator. Parsing follows RFC 4180, and the UTF-8 BOM Excel writes on
+  every CSV export is stripped.
+  
+  Values are typed the way a spreadsheet would type them, except where that would
+  destroy data: leading-zero identifiers, integers beyond float precision, and
+  formatted numbers like `1,000` or `$5` stay text.
+
 ## 0.1.1
 
 ### Patch Changes
