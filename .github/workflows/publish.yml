@@ -41,6 +41,9 @@ jobs:
       - name: Update npm
         run: npm install -g npm@11
       - run: npm -v
-      - run: npx changeset publish --access=public --registry=https://registry.npmjs.org/
+      # changesets v3 removed the --access and --registry flags. Access comes
+      # from .changeset/config.json and package.json publishConfig; the registry
+      # is set in .npmrc by setup-node above.
+      - run: npx changeset publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
