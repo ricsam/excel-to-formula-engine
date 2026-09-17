@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>excel-to-formula-engine</title>
+    <style>
+      :root { color-scheme: light dark; --line: #d4d4d8; --bg: #ffffff; --fg: #18181b; --muted: #71717a; }
+      @media (prefers-color-scheme: dark) {
+        :root { --line: #3f3f46; --bg: #18181b; --fg: #fafafa; --muted: #a1a1aa; }
+      }
+      body { font: 14px/1.5 ui-sans-serif, system-ui, sans-serif; margin: 0; padding: 24px; background: var(--bg); color: var(--fg); }
+      h1 { font-size: 18px; margin: 0 0 4px; }
+      p.lede { color: var(--muted); margin: 0 0 20px; }
+      input[type="file"] { margin-bottom: 16px; }
+      #status { font-weight: 600; margin-bottom: 16px; }
+      h2 { font-size: 14px; margin: 20px 0 6px; }
+      table { border-collapse: collapse; margin-bottom: 8px; }
+      td { border: 1px solid var(--line); padding: 3px 8px; min-width: 60px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      ul.diagnostics { margin-top: 20px; padding-left: 18px; }
+      ul.diagnostics li { margin-bottom: 4px; }
+      ul.diagnostics li.warning { color: #b45309; }
+      ul.diagnostics li.info { color: var(--muted); }
+    </style>
+  </head>
+  <body>
+    <h1>excel-to-formula-engine</h1>
+    <p class="lede">Pick an .xlsx file. It is converted in the browser and loaded into a live FormulaEngine; the grid below shows recalculated values.</p>
+    <input type="file" id="file" accept=".xlsx" />
+    <div id="status">No file loaded.</div>
+    <div id="output"></div>
+    <script type="module" src="./demo.js"></script>
+  </body>
+</html>

@@ -1,0 +1,8 @@
+node_modules/
+dist/
+
+# Built by `bun run demo`.
+demo/demo.js
+
+# Built by `bun run fixtures`.
+tests/fixtures/generated/

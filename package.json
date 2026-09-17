@@ -1,0 +1,51 @@
+{
+  "name": "@ricsam/excel-to-formula-engine",
+  "version": "0.1.0",
+  "description": "Convert an Excel .xlsx file into FormulaEngine WorkbookData, in the browser",
+  "type": "module",
+  "module": "index.ts",
+  "main": "index.ts",
+  "types": "index.ts",
+  "scripts": {
+    "test": "bun run fixtures && bun test",
+    "agent:test": "CLAUDECODE=1 bun run fixtures && CLAUDECODE=1 bun test",
+    "typecheck": "tsc --noEmit",
+    "fixtures": "bun tests/fixtures/build-fixtures.ts",
+    "demo": "bun build demo/demo.ts --target=browser --outfile=demo/demo.js",
+    "demo:serve": "bun run demo && bun demo/serve.ts"
+  },
+  "keywords": [
+    "excel",
+    "xlsx",
+    "spreadsheet",
+    "formula-engine",
+    "browser"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ricsam/excel-to-formula-engine.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ricsam/excel-to-formula-engine/issues"
+  },
+  "homepage": "https://github.com/ricsam/excel-to-formula-engine#readme",
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "fast-xml-parser": "^5.11.1",
+    "fflate": "^0.8.3"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.2",
+    "exceljs": "^4.4.0",
+    "typescript": "^5.9.2"
+  },
+  "peerDependencies": {
+    "@ricsam/formula-engine": ">=0.2.29"
+  },
+  "files": [
+    "index.ts",
+    "src",
+    "README.md"
+  ]
+}
