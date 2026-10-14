@@ -1,5 +1,18 @@
 # @ricsam/excel-to-formula-engine
 
+## 0.2.2
+
+### Patch Changes
+
+- Resolve existing worksheet cells through explicit cell, active row, column,
+  and default XF formatting, preserving explicit style zero. Resolve named-style
+  fonts and `applyFont` overrides without leaking inherited decorations.
+- Retain the resolved default in `workbookMetadata.defaultCellStyle` and literal
+  Excel font names as `fontFamily`. Preserve explicit differential font resets
+  and underline variants. `styles: false` still disables imported styles.
+- Keep column ranges sparse; no absent cells or legacy snapshot defaults are
+  inferred from neighboring cells.
+
 ## 0.2.1
 
 ### Patch Changes

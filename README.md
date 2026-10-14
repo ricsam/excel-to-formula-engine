@@ -167,9 +167,11 @@ engine API. `styles:false` disables both. Empty coordinates not present in the
 worksheet are not materialized. Older imported snapshots do not retain XF 0
 and cannot reconstruct it losslessly from neighboring styles.
 
-This is not full Excel rendering fidelity: font families, table style themes,
-rich-text runs, and named-style inheritance of non-font properties are not
-translated by this change.
+Literal Excel font names are retained as `fontFamily` (clients must provide
+those fonts). This is not full Excel rendering fidelity: theme font substitution,
+table style themes, rich-text runs, and named-style inheritance of non-font
+properties are not translated by this change. Double/accounting underline
+variants become a single boolean underline.
 
 ### Formulas the engine cannot evaluate
 

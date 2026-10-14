@@ -106,7 +106,10 @@ export function parseStyles(pkg: XlsxPackage): StyleTable {
     // the existing convention: use an explicit fontId when supplied. An
     // explicit false selects the base style instead. Font records replace
     // one another as a unit: do not leak base bold/italic into a plain font.
-    const baseFontId = numAttr(baseXf, "fontId") ?? 0;
+    // A named style can itself exclude its font component.
+    const baseFontId = boolAttr(baseXf, "applyFont", true)
+      ? numAttr(baseXf, "fontId") ?? 0
+      : 0;
     const fontId = boolAttr(xf, "applyFont", true)
       ? numAttr(xf, "fontId") ?? baseFontId
       : baseFontId;
@@ -177,14 +180,20 @@ function applyFont(
   theme: string[],
   indexedColors: string[]
 ): void {
-  if (font["b"] !== undefined && isOn(font["b"])) {
-    style.bold = true;
+  // Preserve the literal Excel name, not the numeric <family> classification.
+  const fontFamily = attr(font["name"], "val");
+  if (fontFamily) {
+    style.fontFamily = fontFamily;
   }
-  if (font["i"] !== undefined && isOn(font["i"])) {
-    style.italic = true;
+  if (font["b"] !== undefined) {
+    style.bold = isOn(font["b"]);
   }
-  if (font["u"] !== undefined && isOn(font["u"])) {
-    style.underline = true;
+  if (font["i"] !== undefined) {
+    style.italic = isOn(font["i"]);
+  }
+  if (font["u"] !== undefined) {
+    // Underline is an enum, not a boolean; double/accounting become underline.
+    style.underline = attr(font["u"], "val") !== "none";
   }
   const size = numAttr(font["sz"], "val");
   if (size !== undefined) {

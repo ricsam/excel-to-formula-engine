@@ -9,9 +9,9 @@ import { parseStyles } from "../../src/xlsx/styles";
 // inherited styles onto cells and would hide precisely these regressions.
 const styles = `<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
 <fonts count="3">
- <font><sz val="12"/><color rgb="FF000000"/></font>
- <font><b/><i/><u/><sz val="18"/><color rgb="FF008000"/></font>
- <font><sz val="9"/><color rgb="FF0000FF"/></font>
+ <font><name val="Aptos"/><sz val="12"/><color rgb="FF000000"/></font>
+ <font><name val="Times New Roman"/><b/><i/><u/><sz val="18"/><color rgb="FF008000"/></font>
+ <font><name val="Arial"/><sz val="9"/><color rgb="FF0000FF"/></font>
 </fonts><fills count="1"><fill><patternFill patternType="none"/></fill></fills>
 <borders count="1"><border/></borders>
 <cellStyleXfs count="2"><xf fontId="0"/><xf fontId="1"/></cellStyleXfs>
@@ -96,6 +96,69 @@ test("inherited number formats feed date conversion and metadata", async () => {
 test("differential fonts stay partial rather than clearing decorations", async () => {
   const pkg = await readXlsxPackage(fixture("<sheetData/>"));
   expect(parseStyles(pkg).differentialFormats[0]).toEqual({color:"#ff0000"});
+});
+
+test("row and column inheritance retains fills, borders and alignment without merging XFs", async () => {
+  const xml = styles
+    .replace('<fills count="1"><fill><patternFill patternType="none"/></fill></fills>', '<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFFF00"/></patternFill></fill></fills>')
+    .replace('<borders count="1"><border/></borders>', '<borders count="2"><border/><border><bottom style="thin"><color rgb="FF000000"/></bottom></border></borders>')
+    .replace('<xf fontId="2" xfId="0"/>', '<xf fontId="2" xfId="0" fillId="1" borderId="1" applyFill="true" applyBorder="1" applyAlignment="1"><alignment wrapText="1"/></xf>');
+  const { style } = await imported(`<cols><col min="1" max="3" style="1"/></cols><sheetData>
+    <row r="1">${cell("A1")}${cell("B1", 's="0"')}</row>
+    <row r="2" s="1" customFormat="1">${cell("D2")}</row>
+    <row r="3" s="0" customFormat="1">${cell("A3")}</row></sheetData>`, xml);
+  expect(style("A1")).toMatchObject({ backgroundColor: "#ffff00", wrapText: true, borderSides: { bottom: true } });
+  expect(style("D2")).toEqual(style("A1"));
+  for (const ref of ["B1", "A3"]) {
+    expect(style(ref)?.backgroundColor).toBeUndefined();
+    expect(style(ref)?.wrapText).toBeUndefined();
+    expect(style(ref)?.borderSides).toBeUndefined();
+  }
+  const disabled = xml.replace('applyFill="true"', 'applyFill="false"')
+    .replace('applyBorder="1"', 'applyBorder="0"').replace('applyAlignment="1"', 'applyAlignment="0"');
+  const table = parseStyles(await readXlsxPackage(fixture("<sheetData/>", disabled)));
+  expect(table.formats[1]?.style.backgroundColor).toBeUndefined();
+  expect(table.formats[1]?.style.wrapText).toBeUndefined();
+  expect(table.formats[1]?.style.borderSides).toBeUndefined();
+});
+
+test("a named style can exclude its font component", async () => {
+  const xml = styles.replace('<xf fontId="1"/>', '<xf fontId="1" applyFont="false"/>');
+  const table = parseStyles(await readXlsxPackage(fixture("<sheetData/>", xml)));
+  expect(table.formats[2]?.style).toMatchObject({ fontFamily: "Aptos", bold: false });
+  expect(table.formats[3]?.style).toMatchObject({ fontFamily: "Aptos", bold: false });
+  expect(table.formats[4]?.style).toMatchObject({ fontFamily: "Arial", bold: false });
+});
+
+test("font names survive default, inherited and overridden fonts", async () => {
+  const { data, style } = await imported(`<sheetData><row r="1">${cell("A1")}${cell("B1", 's="3"')}${cell("C1", 's="4"')}</row></sheetData>`);
+  expect(data.workbookMetadata?.defaultCellStyle).toMatchObject({ fontFamily: "Aptos" });
+  expect(style("B1")).toMatchObject({ fontFamily: "Times New Roman" });
+  expect(style("C1")).toMatchObject({ fontFamily: "Arial" });
+});
+
+test("boolean spellings and row XF zero preserve precedence", async () => {
+  const booleanStyles = styles.replace('applyFont="0"', 'applyFont="false"').replace('applyFont="1"', 'applyFont="true"');
+  const { style } = await imported(`<cols><col min="1" max="3" style="1"/></cols><sheetData>
+    <row r="1" s="0" customFormat="true">${cell("A1")}${cell("B1", 's="3"')}${cell("C1", 's="4"')}</row>
+    <row r="2" s="2" customFormat="false">${cell("A2")}</row></sheetData>`, booleanStyles);
+  expect(style("A1")).toMatchObject({ fontSize: 16 });
+  expect(style("B1")).toMatchObject({ fontSize: 24 });
+  expect(style("C1")).toMatchObject({ fontSize: 12 });
+  expect(style("A2")).toMatchObject({ fontSize: 12 });
+});
+
+test("underline enums and explicit differential decoration resets are retained", async () => {
+  const xml = styles.replace('<u/>', '<u val="doubleAccounting"/>')
+    .replace('<dxf><font><color rgb="FFFF0000"/></font></dxf>', '<dxf><font><b val="false"/><i val="0"/><u val="none"/></font></dxf>');
+  const table = parseStyles(await readXlsxPackage(fixture("<sheetData/>", xml)));
+  expect(table.formats[2]?.style.underline).toBe(true);
+  expect(table.differentialFormats[0]).toEqual({ bold: false, italic: false, underline: false });
+});
+
+test("full column defaults do not materialize absent coordinates", async () => {
+  const { data } = await imported(`<cols><col min="1" max="16384" style="1"/></cols><sheetData><row r="1">${cell("A1")}</row></sheetData>`);
+  expect((data.sheets[0]!.content as Map<string, unknown>).size).toBe(1);
 });
 
 test("missing styles part does not invent a workbook font", async () => {
