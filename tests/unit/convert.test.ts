@@ -73,8 +73,9 @@ describe("basic.xlsx", () => {
     expect(style?.borderSides?.bottom).toBe(true);
   });
 
-  test("does not style cells that had no format", () => {
-    expect(engine.getCellStyle(at("Data", "A8"))?.bold).toBeUndefined();
+  test("uses the default non-bold font for cells without an explicit format", () => {
+    expect(engine.getCellStyle(at("Data", "A8"))?.bold).toBe(false);
+    expect(engine.getCellStyle(at("Data", "A8"))).toEqual(data.workbookMetadata?.defaultCellStyle);
   });
 
   test("records number formats as cell metadata", () => {

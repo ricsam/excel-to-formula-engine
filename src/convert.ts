@@ -244,6 +244,7 @@ export async function convertWorkbook(
     conditionalStyles:
       conditionalStyles.length > 0 ? conditionalStyles : undefined,
     workbookMetadata: {
+      defaultCellStyle: importStyles ? styleTable.formats[0]?.style : undefined,
       fileName: options.fileName,
       sheetOrder: sheetEntries.map((entry) => entry.name),
       diagnostics: diagnostics.length > 0 ? diagnostics : undefined,

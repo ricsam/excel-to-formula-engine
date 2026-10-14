@@ -93,15 +93,31 @@ export function parseStyles(pkg: XlsxPackage): StyleTable {
     (styleSheet["cellXfs"] as XmlNode | undefined)?.["xf"]
   );
 
+  const styleXfs = asArray(
+    (styleSheet["cellStyleXfs"] as XmlNode | undefined)?.["xf"]
+  );
+
   const formats: ExcelFormat[] = cellXfs.map((rawXf) => {
     const xf = rawXf as XmlNode;
     const style: CellStyle = {};
 
-    if (boolAttr(xf, "applyFont", true)) {
-      const font = fonts[numAttr(xf, "fontId") ?? -1];
-      if (font) {
-        applyFont(style, font as XmlNode, theme, indexedColors);
-      }
+    const baseXf = styleXfs[numAttr(xf, "xfId") ?? -1];
+    // A cell XF may inherit its named style's font. Omitted applyFont retains
+    // the existing convention: use an explicit fontId when supplied. An
+    // explicit false selects the base style instead. Font records replace
+    // one another as a unit: do not leak base bold/italic into a plain font.
+    const baseFontId = numAttr(baseXf, "fontId") ?? 0;
+    const fontId = boolAttr(xf, "applyFont", true)
+      ? numAttr(xf, "fontId") ?? baseFontId
+      : baseFontId;
+    const font = fonts[fontId];
+    if (font) {
+      // Complete font records must clear inherited decorations. DXFs below
+      // remain partial and deliberately do not get these false defaults.
+      style.bold = false;
+      style.italic = false;
+      style.underline = false;
+      applyFont(style, font as XmlNode, theme, indexedColors);
     }
 
     if (boolAttr(xf, "applyFill", true)) {

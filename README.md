@@ -150,6 +150,27 @@ await excelToFormulaEngine(file, {
 | Number formats, hyperlinks | Cell metadata | Stored for your UI; the engine does not interpret them. |
 | Merges, frozen panes, column widths, hidden sheets | Sheet metadata | Same — stored for your UI to apply. |
 
+### Effective cell fonts
+
+Existing worksheet cells resolve their formatting in this order: explicit cell
+`s` (including `s="0"`), row `s` when `customFormat` is enabled, column `style`,
+then workbook cell XF 0. Column ranges remain sparse, including full-sheet
+ranges. Named-style font inheritance (`cellStyleXfs` / `xfId`) is resolved;
+`applyFont="0"` selects the base font, while an explicit applied font replaces
+it as a unit. Supported font decorations include explicit false values so a
+plain font can clear inherited bold, italic, or underline.
+
+The resolved XF 0 is also retained as `workbookMetadata.defaultCellStyle`
+(engine units: font sizes are pixels). This is additive metadata for clients;
+actual imported cells receive coalesced direct styles without requiring a new
+engine API. `styles:false` disables both. Empty coordinates not present in the
+worksheet are not materialized. Older imported snapshots do not retain XF 0
+and cannot reconstruct it losslessly from neighboring styles.
+
+This is not full Excel rendering fidelity: font families, table style themes,
+rich-text runs, and named-style inheritance of non-font properties are not
+translated by this change.
+
 ### Formulas the engine cannot evaluate
 
 The engine implements around 40 functions. A formula using anything else — an

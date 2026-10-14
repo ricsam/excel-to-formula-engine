@@ -126,6 +126,14 @@ function parseCells(
 ): void {
   const sheetData = worksheet["sheetData"] as XmlNode | undefined;
   const shared = new Map<string, SharedFormula>();
+  // Keep column ranges sparse: a full-sheet column style must not allocate
+  // millions of cells (nor depend on a column having an explicit width).
+  const columnStyles = asArray(
+    (worksheet["cols"] as XmlNode | undefined)?.["col"]
+  ).map((col) => ({
+    min: numAttr(col, "min"), max: numAttr(col, "max"),
+    style: numAttr(col, "style"),
+  })).filter((col) => col.min !== undefined && col.max !== undefined && col.style !== undefined);
 
   for (const rawRow of asArray(sheetData?.["row"])) {
     const row = rawRow as XmlNode;
@@ -146,12 +154,20 @@ function parseCells(
         continue;
       }
 
-      const styleIndex = numAttr(cell, "s");
+      // An explicit s="0" is a real override, not an absent style. Row
+      // formatting is active only when customFormat is set. Remaining cells
+      // inherit their column XF, then the workbook's default cell XF (0).
+      const explicitStyle = numAttr(cell, "s");
+      const rowStyle = boolAttr(row, "customFormat") ? numAttr(row, "s") : undefined;
+      const columnStyle = columnStyles.findLast((col) =>
+        address.colIndex + 1 >= col.min! && address.colIndex + 1 <= col.max!
+      )?.style;
+      const styleIndex = explicitStyle ?? rowStyle ?? columnStyle ?? 0;
       const type = attr(cell, "t") ?? "n";
       const formula = readFormula(cell, address, shared);
       const { kind, value } = readValue(cell, type, sharedStrings);
 
-      if (kind === "empty" && formula === undefined && styleIndex === undefined) {
+      if (kind === "empty" && formula === undefined && explicitStyle === undefined && rowStyle === undefined && columnStyle === undefined) {
         continue;
       }
 

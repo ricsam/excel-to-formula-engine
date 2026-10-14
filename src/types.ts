@@ -1,4 +1,4 @@
-import type { WorkbookData } from "@ricsam/formula-engine";
+import type { CellStyle, WorkbookData } from "@ricsam/formula-engine";
 
 /**
  * Severity of a translation note.
@@ -69,6 +69,11 @@ export interface ExcelSheetMetadata {
 }
 
 export interface ExcelWorkbookMetadata {
+  /** Resolved cell XF 0, in engine units. Informational fallback for clients;
+   * actual imported cells also receive effective direct styles. Absent when
+   * styles are disabled or the source has no default XF. Older imports did
+   * not retain this information and cannot reconstruct it losslessly. */
+  defaultCellStyle?: CellStyle;
   /** Source file name when the Blob carried one. */
   fileName?: string;
   /** Sheet names in their original workbook order. */
