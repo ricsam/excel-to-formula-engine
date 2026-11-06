@@ -1,5 +1,15 @@
 # @ricsam/excel-to-formula-engine
 
+## 0.3.0
+
+### Minor Changes
+
+- 2901681: Diagnostics about a conditional formatting rule now carry `ranges`: the A1
+  ranges the rule applied to, with `$` markers removed.
+  
+  Until now such a diagnostic only named its sheet, so a report could say a rule
+  was skipped but not which cells lost their formatting.
+
 ## 0.2.2
 
 ### Patch Changes
