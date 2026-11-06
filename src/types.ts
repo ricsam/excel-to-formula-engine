@@ -34,6 +34,12 @@ export interface Diagnostic {
   sheetName?: string;
   /** A1 reference when the diagnostic belongs to one cell. */
   cellReference?: string;
+  /**
+   * A1 ranges the diagnostic covers, when it belongs to an area rather than a
+   * single cell — for example the cells a skipped conditional formatting rule
+   * applied to. Absolute markers (`$`) are removed.
+   */
+  ranges?: string[];
   /** The Excel source text that produced the diagnostic. */
   source?: string;
 }

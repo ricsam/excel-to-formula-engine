@@ -39,6 +39,7 @@ export function translateConditionalFormat(
   options: TranslateConditionalFormatOptions
 ): { result?: TranslatedConditionalFormat; diagnostics: Diagnostic[] } {
   const diagnostics: Diagnostic[] = [];
+  const ranges = rule.ranges.map((reference) => reference.replace(/\$/g, ""));
 
   const areas: WorkbookDataArea[] = [];
   for (const reference of rule.ranges) {
@@ -53,16 +54,28 @@ export function translateConditionalFormat(
 
   const anchor = rule.ranges[0]?.split(":")[0]?.replace(/\$/g, "") ?? "A1";
 
-  if (rule.type === "colorScale") {
-    return translateColorScale(rule, areas, options, diagnostics);
+  const result =
+    rule.type === "colorScale"
+      ? translateColorScale(rule, areas, options, diagnostics).result
+      : withCondition(areas, buildFormulaCondition(rule, anchor, options, diagnostics));
+
+  // Every note this rule produced is about the cells it applied to, so a UI can
+  // point at them. A formula diagnostic already names its anchor cell; the
+  // ranges say which cells the rule's colours were meant for.
+  for (const diagnostic of diagnostics) {
+    if (diagnostic.ranges === undefined && ranges.length > 0) {
+      diagnostic.ranges = ranges;
+    }
   }
 
-  const condition = buildFormulaCondition(rule, anchor, options, diagnostics);
-  if (!condition) {
-    return { diagnostics };
-  }
+  return { result, diagnostics };
+}
 
-  return { result: { areas, condition }, diagnostics };
+function withCondition(
+  areas: WorkbookDataArea[],
+  condition: StyleCondition | undefined
+): TranslatedConditionalFormat | undefined {
+  return condition ? { areas, condition } : undefined;
 }
 
 function buildFormulaCondition(
