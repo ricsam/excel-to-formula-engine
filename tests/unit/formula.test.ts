@@ -34,12 +34,12 @@ describe("translateFormula", () => {
   });
 
   test("keeps formulas with unsupported functions and reports them", () => {
-    const result = translateFormula("=VLOOKUP(A1,B:C,2,FALSE)", {
+    const result = translateFormula("=HLOOKUP(A1,B:C,2,FALSE)", {
       sheetName: "Sheet1",
       cellReference: "D1",
     });
 
-    expect(result.formula).toBe("=VLOOKUP(A1,B:C,2,FALSE)");
+    expect(result.formula).toBe("=HLOOKUP(A1,B:C,2,FALSE)");
     expect(result.diagnostics).toHaveLength(1);
     expect(result.diagnostics[0]).toMatchObject({
       severity: "warning",
@@ -47,7 +47,7 @@ describe("translateFormula", () => {
       sheetName: "Sheet1",
       cellReference: "D1",
     });
-    expect(result.diagnostics[0]!.message).toContain("VLOOKUP");
+    expect(result.diagnostics[0]!.message).toContain("HLOOKUP");
   });
 
   test("reports nothing for functions the engine implements", () => {
@@ -70,12 +70,12 @@ describe("findUnsupportedFunctions", () => {
   });
 
   test("finds nested unsupported calls", () => {
-    expect(findUnsupportedFunctions("SUM(ROUND(A1,2))")).toEqual(["ROUND"]);
+    expect(findUnsupportedFunctions("SUM(MROUND(A1,2))")).toEqual(["MROUND"]);
   });
 
   test("reports each unsupported function once", () => {
-    expect(findUnsupportedFunctions("ROUND(A1,2)+ROUND(A2,2)")).toEqual([
-      "ROUND",
+    expect(findUnsupportedFunctions("MROUND(A1,2)+MROUND(A2,2)")).toEqual([
+      "MROUND",
     ]);
   });
 });

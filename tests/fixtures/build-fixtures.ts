@@ -165,7 +165,7 @@ async function withNamesAndDates(): Promise<ExcelJS.Workbook> {
   sheet.getCell("C2").value = { formula: "C1*100" };
 
   // A formula using a function the engine does not implement.
-  sheet.getCell("D1").value = { formula: "VLOOKUP(A1,A1:B2,2,FALSE)" };
+  sheet.getCell("D1").value = { formula: "HLOOKUP(A1,A1:B2,2,FALSE)" };
 
   // Merged cells and a frozen pane.
   sheet.mergeCells("F1:G2");

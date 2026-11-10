@@ -184,13 +184,13 @@ describe("names-and-dates.xlsx", () => {
   test("keeps an unsupported formula and reports it", () => {
     const content = data.sheets.find((sheet) => sheet.name === "Main")?.content;
     const d1 = (content as Map<string, unknown>).get("D1");
-    expect(d1).toBe("=VLOOKUP(A1,A1:B2,2,FALSE)");
+    expect(d1).toBe("=HLOOKUP(A1,A1:B2,2,FALSE)");
 
     const warning = (data.workbookMetadata?.diagnostics ?? []).find(
       (diagnostic) => diagnostic.code === "unsupported-function"
     );
     expect(warning).toBeDefined();
-    expect(warning?.message).toContain("VLOOKUP");
+    expect(warning?.message).toContain("HLOOKUP");
     expect(warning?.cellReference).toBe("D1");
   });
 

@@ -209,7 +209,7 @@ describe("csvToFormulaEngine", () => {
   });
 
   test("reports a formula the engine cannot evaluate", async () => {
-    const { diagnostics } = await csvToFormulaEngineDetailed("=VLOOKUP(A1,B:C,2,FALSE)");
+    const { diagnostics } = await csvToFormulaEngineDetailed("=HLOOKUP(A1,B:C,2,FALSE)");
     expect(diagnostics.some((d) => d.code === "unsupported-function")).toBe(true);
   });
 
